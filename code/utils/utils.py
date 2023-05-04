@@ -2,7 +2,10 @@ from google.cloud import storage
 from pyspark.sql.functions import lit
 
 def convert_time(t, Hz=100):
-	return t / Hz
+    '''
+    Convert integer steps to seconds based on a time-step freqnecy Hz. 
+    '''
+    return t / Hz
 
 
 # NOTE: function taken and modified from GCP support documentation
@@ -44,7 +47,7 @@ def feed_files(file_list, prefix=None, v=0, spark=None):
     c = 0
     for i, f in enumerate(file_list):
 
-        if (v == 1) and (i % 10 == 0):
+        if (v == 1) and (i % 25 == 0):
             print(f"File {i+1} of {len(file_list)}")
         id = f.replace(".csv", "")
 
