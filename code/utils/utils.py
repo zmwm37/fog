@@ -67,3 +67,22 @@ def feed_files(file_list, prefix=None, v=0, spark=None):
         df.union(ts)
         c += 1
     return df
+
+
+def create_dummies(df, col_name):
+    """
+    In:
+        df : spark dataframe
+        col_name (str): column name for which you want to generate dummy variables
+    Out: 
+        df with dummy columns
+    """
+    import pyspark.sql.functions as F
+
+    vals = df.select(col_name).distinct().collect()
+    for v in vals:
+        dummy = v.__getitem__(col_name)
+        df = df.withColumn(dummy,
+                      F.when((F.col(col_name) == dummy), 1) \
+                      .otherwise(0))
+    return df
