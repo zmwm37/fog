@@ -61,10 +61,10 @@ def feed_files(file_list, prefix=None, v=0, spark=None):
 
         if c == 0:
             df = ts
-        else:
-            df.union(ts)
-
-        df.union(ts)
+            c += 1
+            continue
+            
+        df = df.union(ts)
         c += 1
     return df
 
