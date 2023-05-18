@@ -31,7 +31,7 @@ def list_blobs(bucket_name, string_match=None):
     return fl
 
 
-def feed_files(file_list, prefix=None, v=0, spark_session=None, file_type="csv"):
+def feed_files(file_list, prefix=None, v=0, spark_session=None):
     '''
     Read in files from directory
     
@@ -40,7 +40,6 @@ def feed_files(file_list, prefix=None, v=0, spark_session=None, file_type="csv")
         prefix (string): file path prefix to prepend to all file strings in file_list
         v (int): verbose level in {0: no verbosity, 1: verbosity}
         spark_session: spark instance created by SparkSession.builder.appName("PySpark Cloud Test").getOrCreate()
-        file_type (string): csv or parquet, indicating file type
     
     Outputs:
         df (spark.sql.DataFrame): a dataframe of joined time series data
@@ -51,13 +50,11 @@ def feed_files(file_list, prefix=None, v=0, spark_session=None, file_type="csv")
 
         if (v == 1) and (i % 25 == 0):
             print(f"File {i+1} of {len(file_list)}")
-        id = f.replace(".csv", "")
+
 
         try:
-            if file_type == "csv":
-                ts = spark_session.read.csv("gs://msca-bdp-student-gcs/"+prefix+f, header=True)
-            elif file_type == "parquet":
-                ts = spark_session.read.parquet("gs://msca-bdp-student-gcs/"+prefix+f)
+            id = f.replace(".csv", "")
+            ts = spark_session.read.csv("gs://msca-bdp-student-gcs/"+prefix+f, header=True)
         except:
             print(f"WARNING - the following file could not be read: {f}")
             continue
@@ -101,6 +98,6 @@ def transform_target(df):
                       F.when((F.col("StartHesitation") == 1), 1) \
                            .when((F.col("Turn") == 1), 2)\
                            .when((F.col("Walking") == 1), 3) \
-                           .otherwise(0)
+                           .otherwise(0) 
                       )
     return df
