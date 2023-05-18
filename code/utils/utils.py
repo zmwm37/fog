@@ -1,5 +1,5 @@
 from google.cloud import storage
-from pyspark.sql.functions import lit
+import pyspark.sql.functions as F
 
 def convert_time(t, Hz=100):
     '''
@@ -31,7 +31,7 @@ def list_blobs(bucket_name, string_match=None):
     return fl
 
 
-def feed_files(file_list, prefix=None, v=0, spark=None):
+def feed_files(file_list, prefix=None, v=0, spark_session=None, file_type="csv"):
     '''
     Read in files from directory
     
@@ -39,6 +39,8 @@ def feed_files(file_list, prefix=None, v=0, spark=None):
         file_list (list): strings of timeseries file names
         prefix (string): file path prefix to prepend to all file strings in file_list
         v (int): verbose level in {0: no verbosity, 1: verbosity}
+        spark_session: spark instance created by SparkSession.builder.appName("PySpark Cloud Test").getOrCreate()
+        file_type (string): csv or parquet, indicating file type
     
     Outputs:
         df (spark.sql.DataFrame): a dataframe of joined time series data
@@ -52,12 +54,15 @@ def feed_files(file_list, prefix=None, v=0, spark=None):
         id = f.replace(".csv", "")
 
         try:
-            ts = spark.read.csv("gs://msca-bdp-student-gcs/"+prefix+f, header=True)
+            if file_type == "csv":
+                ts = spark_session.read.csv("gs://msca-bdp-student-gcs/"+prefix+f, header=True)
+            elif file_type == "parquet":
+                ts = spark_session.read.parquet("gs://msca-bdp-student-gcs/"+prefix+f)
         except:
             print(f"WARNING - the following file could not be read: {f}")
             continue
         
-        ts = ts.withColumn("Id", lit(id))
+        ts = ts.withColumn("Id", F.lit(id))
 
         if c == 0:
             df = ts
@@ -85,4 +90,17 @@ def create_dummies(df, col_name):
         df = df.withColumn(dummy,
                       F.when((F.col(col_name) == dummy), 1) \
                       .otherwise(0))
+    return df
+
+
+def transform_target(df):
+    '''
+    Combine three separate target variables into one.
+    '''
+    df = df.withColumn('target', 
+                      F.when((F.col("StartHesitation") == 1), 1) \
+                           .when((F.col("Turn") == 1), 2)\
+                           .when((F.col("Walking") == 1), 3) \
+                           .otherwise(0)
+                      )
     return df
